@@ -16,10 +16,8 @@ func main() {
 	}
 
 	lines := readLines(os.Args[1])
-	races := parseRaces(lines)
-	fmt.Printf("Initially, there were %d races\n", len(races))
-	keyedRaces := dedupeRaces(races)
-	fmt.Printf("After deduping, there are %d races.\n", len(keyedRaces))
+	keyedRaces := parseRaces(lines)
+
 	for _, race := range keyedRaces {
 		for _, line := range race {
 			fmt.Println(line)
@@ -46,38 +44,23 @@ func readLines(path string) []string {
 	return content
 }
 
-func parseRaces(lines []string) [][]string {
+func parseRaces(lines []string) map[string][]string {
+	keyedRaces := make(map[string][]string)
+	re := regexp.MustCompile("(/[/\\w\\.-]+:[0-9]+)(\\s|$)")
+	count := 0
 	foundRace := false
 	var currRace []string
-	races := make([][]string, 0)
 	// process each line to find data race sections
+	frs := false // found read section?
+	fws := false // found write section?
+	readKey := ""
+	writeKey := ""
 	for _, line := range lines {
 		if foundRace {
 			currRace = append(currRace, line)
 			if strings.Contains(line, "==================") {
 				foundRace = false
-				races = append(races, currRace)
-			}
-		} else if strings.Contains(line, "WARNING: DATA RACE") {
-			foundRace = true
-			currRace = make([]string, 0)
-			currRace = append(currRace, "==================", "WARNING: DATA RACE")
-		}
-	}
-	return races
-}
-
-func dedupeRaces(races [][]string) map[string][]string {
-	keyedRaces := make(map[string][]string)
-	re := regexp.MustCompile("(/[/\\w\\.-]+:[0-9]+)(\\s|$)")
-
-	for _, race := range races {
-		frs := false // found read section?
-		fws := false // found write section?
-		readKey := ""
-		writeKey := ""
-		for _, line := range race {
-			if frs || fws {
+			} else if frs || fws {
 				if match := re.FindString(line); len(match) > 0 {
 					if frs {
 						readKey = match
@@ -93,16 +76,26 @@ func dedupeRaces(races [][]string) map[string][]string {
 			} else if strings.Contains(line, "rite by goroutine") {
 				frs = false
 				fws = true
+
 			}
-		}
-		if len(readKey) > 0 && len(writeKey) > 0 {
-			key := readKey + "|" + writeKey
-			if _, exists := keyedRaces[key]; !exists {
-				keyedRaces[key] = race
+			if len(readKey) > 0 && len(writeKey) > 0 {
+				key := readKey + "|" + writeKey
+				if _, exists := keyedRaces[key]; !exists {
+					keyedRaces[key] = currRace
+				}
+				frs = false
+				fws = false
+				continue
 			}
-			continue
-		} else {
-			fmt.Printf("Could not find read and write key for:\n %v\n", race)
+		} else if strings.Contains(line, "WARNING: DATA RACE") {
+			foundRace = true
+			count++
+			frs = false // found read section?
+			fws = false // found write section?
+			readKey = ""
+			writeKey = ""
+			currRace = make([]string, 0)
+			currRace = append(currRace, "==================", "WARNING: DATA RACE")
 		}
 	}
 	return keyedRaces
