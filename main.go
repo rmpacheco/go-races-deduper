@@ -26,7 +26,6 @@ func main() {
 
 	keyedRaces := make(map[string][]string)
 	re := regexp.MustCompile("(/[/\\w\\.-]+:[0-9]+)(\\s|$)")
-	count := 0
 	foundRace := false
 	var currRace []string
 	// process each line to find data race sections
@@ -69,10 +68,10 @@ func main() {
 				continue
 			}
 		} else if strings.Contains(line, "WARNING: DATA RACE") {
+			// reset flags
 			foundRace = true
-			count++
-			frs = false // found read section?
-			fws = false // found write section?
+			frs = false
+			fws = false
 			readKey = ""
 			writeKey = ""
 			currRace = make([]string, 0)
