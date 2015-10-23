@@ -15,36 +15,15 @@ func main() {
 		os.Exit(-1)
 	}
 
-	lines := readLines(os.Args[1])
-	keyedRaces := parseRaces(lines)
-
-	for _, race := range keyedRaces {
-		for _, line := range race {
-			fmt.Println(line)
-		}
-	}
-}
-
-func readLines(path string) []string {
 	// read the file contents in, line by line
-	file, err := os.Open(path)
+	file, err := os.Open(os.Args[1])
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer file.Close()
-	content := make([]string, 0)
+
 	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		content = append(content, scanner.Text())
-	}
 
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
-	}
-	return content
-}
-
-func parseRaces(lines []string) map[string][]string {
 	keyedRaces := make(map[string][]string)
 	re := regexp.MustCompile("(/[/\\w\\.-]+:[0-9]+)(\\s|$)")
 	count := 0
@@ -55,7 +34,9 @@ func parseRaces(lines []string) map[string][]string {
 	fws := false // found write section?
 	readKey := ""
 	writeKey := ""
-	for _, line := range lines {
+
+	for scanner.Scan() {
+		line := scanner.Text()
 		if foundRace {
 			currRace = append(currRace, line)
 			if strings.Contains(line, "==================") {
@@ -98,5 +79,14 @@ func parseRaces(lines []string) map[string][]string {
 			currRace = append(currRace, "==================", "WARNING: DATA RACE")
 		}
 	}
-	return keyedRaces
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	for _, race := range keyedRaces {
+		for _, line := range race {
+			fmt.Println(line)
+		}
+	}
 }
