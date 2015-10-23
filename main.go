@@ -11,13 +11,13 @@ import (
 
 func main() {
 	if len(os.Args) == 1 {
-		fmt.Println("Provide a race file path for deduping.")
+		fmt.Println("Provide the path for a file containing Go races.")
 		os.Exit(-1)
 	}
 
 	lines := readLines(os.Args[1])
 	races := parseRaces(lines)
-	fmt.Printf("Initially, there were %v races\n", len(races))
+	fmt.Printf("Initially, there were %d races\n", len(races))
 	keyedRaces := dedupeRaces(races)
 	fmt.Printf("After deduping, there are %d races.\n", len(keyedRaces))
 	for _, race := range keyedRaces {
