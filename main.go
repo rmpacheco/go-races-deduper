@@ -39,14 +39,15 @@ func main() {
 		line := scanner.Text()
 		if foundRace {
 			currRace = append(currRace, line)
+			// look for end of race section
 			if strings.Contains(line, "==================") {
 				foundRace = false
-			} else if frs || fws {
+			} else if frs || fws { // we are matching either a read-by or write-by stack
 				if match := re.FindString(line); len(match) > 0 {
-					if frs {
+					if frs { // read-by
 						readKey = match
 						frs = false
-					} else {
+					} else { // write-by
 						writeKey = match
 						fws = false
 					}
@@ -57,7 +58,6 @@ func main() {
 			} else if strings.Contains(line, "rite by goroutine") {
 				frs = false
 				fws = true
-
 			}
 			if len(readKey) > 0 && len(writeKey) > 0 {
 				key := readKey + "|" + writeKey
